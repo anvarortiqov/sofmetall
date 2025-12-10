@@ -7,7 +7,7 @@ import CartSidebar from './components/CartSidebar';
 import AIChat from './components/AIChat';
 import { MOCK_PRODUCTS, CATEGORIES, SERVICES, PARTNERS, TRANSLATIONS, PROCESS_STEPS, FAQ_ITEMS, TESTIMONIALS } from './constants';
 import { Language, Product, CartItem } from './types';
-import { Filter, Search, MapPin, Phone, Mail, Facebook, Instagram, Send, ShieldCheck, Truck, Box, ArrowRight, Layers, Scissors, Flame, Headphones, Factory, CheckCircle2, Ruler, Award, Target, ChevronDown, ChevronUp, Star, Quote, Scale, MessageCircle, Bot, Sparkles, Zap } from 'lucide-react';
+import { Filter, Search, MapPin, Phone, Mail, Facebook, Instagram, Send, ShieldCheck, Truck, Box, ArrowRight, Layers, Scissors, Flame, Headphones, Factory, CheckCircle2, Ruler, Award, Target, ChevronDown, ChevronUp, Star, Quote, Scale, MessageCircle, Bot, Sparkles, Zap, Grid3X3, List, SlidersHorizontal, ArrowUpDown, X, Tag, Package } from 'lucide-react';
 
 // Extracted Component to follow React Hook Rules
 interface FAQItemProps {
@@ -42,6 +42,11 @@ const App: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Catalog filters
+  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name'>('default');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 500000]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Calculator State
   const [calcCategory, setCalcCategory] = useState('armatura');
@@ -84,14 +89,38 @@ const App: React.FC = () => {
     setCartItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const filteredProducts = MOCK_PRODUCTS.filter(product => {
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = 
-      product.nameUz.toLowerCase().includes(searchLower) || 
-      product.nameRu.toLowerCase().includes(searchLower);
-    return matchesCategory && matchesSearch;
-  });
+  // Get min/max prices for range
+  const minPrice = Math.min(...MOCK_PRODUCTS.map(p => p.price));
+  const maxPrice = Math.max(...MOCK_PRODUCTS.map(p => p.price));
+
+  const filteredProducts = MOCK_PRODUCTS
+    .filter(product => {
+      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = 
+        product.nameUz.toLowerCase().includes(searchLower) || 
+        product.nameRu.toLowerCase().includes(searchLower);
+      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+      return matchesCategory && matchesSearch && matchesPrice;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'price-asc': return a.price - b.price;
+        case 'price-desc': return b.price - a.price;
+        case 'name': return language === 'uz' 
+          ? a.nameUz.localeCompare(b.nameUz) 
+          : a.nameRu.localeCompare(b.nameRu);
+        default: return 0;
+      }
+    });
+
+  // Reset filters
+  const resetFilters = () => {
+    setSelectedCategory('all');
+    setSearchQuery('');
+    setSortBy('default');
+    setPriceRange([0, maxPrice]);
+  };
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -892,53 +921,310 @@ const App: React.FC = () => {
   );
 
   const renderCatalog = () => (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <span className="text-brand-red font-bold uppercase tracking-widest text-sm mb-2 block">{t.catalog[language]}</span>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4">{t.products[language]}</h2>
-          <div className="h-1.5 w-24 bg-brand-red mx-auto rounded-full"></div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Banner */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-red/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
         </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <span className="inline-flex items-center gap-2 bg-white/10 text-white font-bold uppercase tracking-widest text-sm px-4 py-2 rounded-full mb-4">
+            <Package className="w-4 h-4" />
+            {t.catalog[language]}
+          </span>
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-4">{t.products[language]}</h1>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            {language === 'uz' 
+              ? 'Barcha turdagi metall mahsulotlarini eng yaxshi narxlarda toping' 
+              : 'Найдите все виды металлопроката по лучшим ценам'}
+          </p>
+        </div>
+      </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-10">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-             <div className="relative w-full md:w-1/3">
-               <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-               <input
-                 type="text"
-                 placeholder={t.search[language]}
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-red focus:border-brand-red transition font-medium"
-               />
-             </div>
-             <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
-               {CATEGORIES.map(cat => (
-                 <button
-                   key={cat.id}
-                   onClick={() => setSelectedCategory(cat.id)}
-                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all whitespace-nowrap ${selectedCategory === cat.id ? 'bg-brand-red text-white shadow-lg' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
-                 >
-                   <Filter size={16} />
-                   {language === 'uz' ? cat.labelUz : cat.labelRu}
-                 </button>
-               ))}
-             </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main Filter Bar */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8 -mt-8 relative z-10">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder={language === 'uz' ? 'Mahsulot nomi bo\'yicha qidirish...' : 'Поиск по названию товара...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-red focus:border-brand-red transition font-medium"
+              />
+            </div>
+
+            {/* Sort */}
+            <div className="relative min-w-[200px]">
+              <ArrowUpDown className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-red focus:border-brand-red transition font-medium appearance-none cursor-pointer"
+              >
+                <option value="default">{language === 'uz' ? 'Standart' : 'По умолчанию'}</option>
+                <option value="price-asc">{language === 'uz' ? 'Narx: arzondan qimmatga' : 'Цена: по возрастанию'}</option>
+                <option value="price-desc">{language === 'uz' ? 'Narx: qimmatdan arzonja' : 'Цена: по убыванию'}</option>
+                <option value="name">{language === 'uz' ? 'Nomi bo\'yicha' : 'По названию'}</option>
+              </select>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-3 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-brand-red text-white shadow-lg' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
+              >
+                <Grid3X3 size={20} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-3 rounded-xl transition-all ${viewMode === 'list' ? 'bg-brand-red text-white shadow-lg' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
+              >
+                <List size={20} />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {filteredProducts.map(product => (
-            <ProductCard key={product.id} product={product} language={language} onAddToCart={addToCart} />
-          ))}
-        </div>
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-20 text-slate-500 text-lg">
-            {language === 'uz' ? 'Mahsulot topilmadi' : 'Товары не найдены'}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar Filters */}
+          <div className="lg:w-72 flex-shrink-0">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-24">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <SlidersHorizontal size={20} className="text-brand-red" />
+                  {language === 'uz' ? 'Filterlar' : 'Фильтры'}
+                </h3>
+                <button 
+                  onClick={resetFilters}
+                  className="text-sm text-brand-red hover:underline font-medium"
+                >
+                  {language === 'uz' ? 'Tozalash' : 'Сбросить'}
+                </button>
+              </div>
+
+              {/* Categories */}
+              <div className="mb-6">
+                <h4 className="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider">
+                  {language === 'uz' ? 'Kategoriyalar' : 'Категории'}
+                </h4>
+                <div className="space-y-2">
+                  {CATEGORIES.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all ${
+                        selectedCategory === cat.id 
+                          ? 'bg-brand-red text-white shadow-md' 
+                          : 'bg-gray-50 text-slate-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span className="font-medium">{language === 'uz' ? cat.labelUz : cat.labelRu}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        selectedCategory === cat.id ? 'bg-white/20' : 'bg-gray-200'
+                      }`}>
+                        {cat.id === 'all' 
+                          ? MOCK_PRODUCTS.length 
+                          : MOCK_PRODUCTS.filter(p => p.category === cat.id).length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price Range */}
+              <div className="mb-6">
+                <h4 className="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider">
+                  {language === 'uz' ? 'Narx oralig\'i' : 'Диапазон цен'}
+                </h4>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs text-slate-500 mb-1 block">Min</label>
+                      <input
+                        type="number"
+                        value={priceRange[0]}
+                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium"
+                        min={0}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-slate-500 mb-1 block">Max</label>
+                      <input
+                        type="number"
+                        value={priceRange[1]}
+                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium"
+                        max={maxPrice}
+                      />
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={maxPrice}
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                    className="w-full accent-brand-red"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>{priceRange[0].toLocaleString()} {language === 'uz' ? "so'm" : 'сум'}</span>
+                    <span>{priceRange[1].toLocaleString()} {language === 'uz' ? "so'm" : 'сум'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Price Filters */}
+              <div>
+                <h4 className="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider">
+                  {language === 'uz' ? 'Tez filterlar' : 'Быстрые фильтры'}
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setPriceRange([0, 50000])}
+                    className="px-3 py-2 bg-gray-50 hover:bg-brand-red hover:text-white rounded-lg text-sm font-medium transition-all"
+                  >
+                    &lt; 50,000
+                  </button>
+                  <button
+                    onClick={() => setPriceRange([50000, 100000])}
+                    className="px-3 py-2 bg-gray-50 hover:bg-brand-red hover:text-white rounded-lg text-sm font-medium transition-all"
+                  >
+                    50-100K
+                  </button>
+                  <button
+                    onClick={() => setPriceRange([100000, 200000])}
+                    className="px-3 py-2 bg-gray-50 hover:bg-brand-red hover:text-white rounded-lg text-sm font-medium transition-all"
+                  >
+                    100-200K
+                  </button>
+                  <button
+                    onClick={() => setPriceRange([200000, maxPrice])}
+                    className="px-3 py-2 bg-gray-50 hover:bg-brand-red hover:text-white rounded-lg text-sm font-medium transition-all"
+                  >
+                    200K+
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Products Area */}
+          <div className="flex-1">
+            {/* Results Header */}
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-slate-600">
+                <span className="font-bold text-slate-900">{filteredProducts.length}</span> {language === 'uz' ? 'ta mahsulot topildi' : 'товаров найдено'}
+              </p>
+              
+              {/* Active Filters */}
+              {(selectedCategory !== 'all' || searchQuery || sortBy !== 'default' || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedCategory !== 'all' && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand-red/10 text-brand-red rounded-full text-sm font-medium">
+                      {language === 'uz' 
+                        ? CATEGORIES.find(c => c.id === selectedCategory)?.labelUz 
+                        : CATEGORIES.find(c => c.id === selectedCategory)?.labelRu}
+                      <button onClick={() => setSelectedCategory('all')}>
+                        <X size={14} />
+                      </button>
+                    </span>
+                  )}
+                  {searchQuery && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                      "{searchQuery}"
+                      <button onClick={() => setSearchQuery('')}>
+                        <X size={14} />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Product Grid/List */}
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredProducts.map(product => (
+                  <ProductCard key={product.id} product={product} language={language} onAddToCart={addToCart} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredProducts.map(product => (
+                  <div key={product.id} className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex gap-6 hover:shadow-lg transition-shadow">
+                    <img 
+                      src={product.image} 
+                      alt={language === 'uz' ? product.nameUz : product.nameRu}
+                      className="w-32 h-32 object-cover rounded-xl bg-gray-100"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-brand-red uppercase tracking-wider">
+                            {CATEGORIES.find(c => c.id === product.category)?.[language === 'uz' ? 'labelUz' : 'labelRu']}
+                          </span>
+                          <h3 className="text-xl font-bold text-slate-900 mt-1">
+                            {language === 'uz' ? product.nameUz : product.nameRu}
+                          </h3>
+                          <p className="text-slate-500 text-sm mt-2">{product.specs}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-black text-brand-red">
+                            {product.price.toLocaleString()}
+                            <span className="text-sm font-medium text-slate-400 ml-1">{language === 'uz' ? "so'm" : 'сум'}/{product.unit}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 mt-4">
+                        <button
+                          onClick={() => addToCart(product)}
+                          className="px-6 py-2.5 bg-brand-red text-white font-bold rounded-xl hover:bg-red-700 transition-colors flex items-center gap-2"
+                        >
+                          <Tag size={18} />
+                          {t.addToCart[language]}
+                        </button>
+                        <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+                          <CheckCircle2 size={16} />
+                          {language === 'uz' ? 'Mavjud' : 'В наличии'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Package size={40} className="text-gray-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  {language === 'uz' ? 'Mahsulot topilmadi' : 'Товары не найдены'}
+                </h3>
+                <p className="text-slate-500 mb-6">
+                  {language === 'uz' 
+                    ? 'Filterlarni o\'zgartirib ko\'ring' 
+                    : 'Попробуйте изменить фильтры'}
+                </p>
+                <button
+                  onClick={resetFilters}
+                  className="px-6 py-3 bg-brand-red text-white font-bold rounded-xl hover:bg-red-700 transition-colors"
+                >
+                  {language === 'uz' ? 'Filterlarni tozalash' : 'Сбросить фильтры'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
