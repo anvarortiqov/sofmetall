@@ -393,7 +393,7 @@ export const TESTIMONIALS = [
   },
   {
     name: "Jamshid Tursunov",
-    roleUz: "Sex boshlig'i",
+    roleUz: "Korxona boshlig'i",
     roleRu: "Начальник цеха",
     textUz: "Bizga nostandart o'lchamdagi listlar kerak edi, ular tezda kesib, yetkazib berishdi. Xizmat ko'rsatish a'lo darajada.",
     textRu: "Нам нужны были листы нестандартных размеров, они быстро нарезали и доставили. Сервис на высшем уровне.",

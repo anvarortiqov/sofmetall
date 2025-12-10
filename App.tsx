@@ -382,7 +382,7 @@ const App: React.FC = () => {
           </h1>
           <p className="text-gray-300 text-xl max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-200 font-light">
             {language === 'uz' 
-             ? 'Kichik sexdan boshlanib, O\'zbekistonning yetakchi metall yetkazib beruvchisiga aylanish yo\'li.' 
+             ? 'Kichik korxonadan boshlanib, O\'zbekistonning yetakchi metall yetkazib beruvchisiga aylanish yo\'li.' 
              : 'Путь от небольшого цеха до ведущего поставщика металла в Узбекистане.'}
           </p>
         </div>
